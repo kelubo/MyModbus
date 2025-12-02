@@ -1,0 +1,225 @@
+# Prometheus 告警规则
+# 用于 Modbus RTU Manager 监控
+
+groups:
+  # 设备监控告警
+  - name: modbus_devices
+    interval: 30s
+    rules:
+      # 设备离线告警
+      - alert: DeviceOffline
+        expr: modbus_devices_offline > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "有设备离线"
+          description: "当前有 {{ $value }} 个设备离线"
+      
+      # 大量设备离线告警
+      - alert: ManyDevicesOffline
+        expr: modbus_devices_offline > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "大量设备离线"
+          description: "当前有 {{ $value }} 个设备离线，请立即检查"
+      
+      # 数据采集错误率高
+      - alert: HighDataCollectionErrorRate
+        expr: rate(modbus_data_collection_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "数据采集错误率过高"
+          description: "设备 {{ $labels.device_id }} 的数据采集错误率为 {{ $value }}/s"
+
+  # 告警系统监控
+  - name: modbus_alarms
+    interval: 30s
+    rules:
+      # 严重告警触发
+      - alert: CriticalAlarmTriggered
+        expr: modbus_active_alarms{level="critical"} > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "有严重告警触发"
+          description: "当前有 {{ $value }} 个严重告警"
+      
+      # 大量告警触发
+      - alert: TooManyAlarms
+        expr: sum(modbus_active_alarms) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "告警数量过多"
+          description: "当前有 {{ $value }} 个活动告警"
+
+  # 时间同步监控
+  - name: modbus_time_sync
+    interval: 30s
+    rules:
+      # 时间同步不健康
+      - alert: TimeSyncUnhealthy
+        expr: modbus_time_sync_status == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "时间同步状态异常"
+          description: "时间源 {{ $labels.source }} 同步状态不健康"
+      
+      # 时间同步失败率高
+      - alert: HighTimeSyncFailureRate
+        expr: rate(modbus_time_sync_total{status="failure"}[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "时间同步失败率过高"
+          description: "时间源 {{ $labels.source }} 的同步失败率为 {{ $value }}/s"
+      
+      # PPS 偏移过大
+      - alert: HighPPSOffset
+        expr: abs(modbus_time_sync_offset_nanoseconds) > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PPS 时间偏移过大"
+          description: "PPS 偏移为 {{ $value }} 纳秒，超过 1 微秒"
+
+  # 系统资源监控
+  - name: modbus_system
+    interval: 30s
+    rules:
+      # CPU 使用率过高
+      - alert: HighCPUUsage
+        expr: rate(modbus_rtu_process_cpu_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "CPU 使用率为 {{ $value | humanizePercentage }}"
+      
+      # 内存使用率过高
+      - alert: HighMemoryUsage
+        expr: modbus_rtu_process_resident_memory_bytes / 1024 / 1024 / 1024 > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用过高"
+          description: "内存使用为 {{ $value | humanize }}GB"
+      
+      # WebSocket 连接数过多
+      - alert: TooManyWebSocketConnections
+        expr: modbus_websocket_connections > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "WebSocket 连接数过多"
+          description: "当前有 {{ $value }} 个 WebSocket 连接"
+
+  # HTTP 请求监控
+  - name: modbus_http
+    interval: 30s
+    rules:
+      # HTTP 错误率过高
+      - alert: HighHTTPErrorRate
+        expr: rate(modbus_http_requests_total{status=~"5.."}[5m]) / rate(modbus_http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 错误率过高"
+          description: "路径 {{ $labels.path }} 的错误率为 {{ $value | humanizePercentage }}"
+      
+      # HTTP 请求延迟过高
+      - alert: HighHTTPLatency
+        expr: histogram_quantile(0.95, rate(modbus_http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 请求延迟过高"
+          description: "路径 {{ $labels.path }} 的 P95 延迟为 {{ $value }}s"
+
+  # 数据库监控
+  - name: modbus_database
+    interval: 30s
+    rules:
+      # 数据库查询错误率高
+      - alert: HighDatabaseErrorRate
+        expr: rate(modbus_database_queries_total{status="failure"}[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "数据库查询错误率过高"
+          description: "操作 {{ $labels.operation }} 的错误率为 {{ $value }}/s"
+      
+      # 数据库查询延迟过高
+      - alert: HighDatabaseLatency
+        expr: histogram_quantile(0.95, rate(modbus_database_query_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "数据库查询延迟过高"
+          description: "操作 {{ $labels.operation }} 的 P95 延迟为 {{ $value }}s"
+
+  # 集群监控
+  - name: modbus_cluster
+    interval: 30s
+    rules:
+      # 集群节点离线
+      - alert: ClusterNodeOffline
+        expr: modbus_cluster_nodes{status="inactive"} > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "集群节点离线"
+          description: "有 {{ $value }} 个集群节点离线"
+      
+      # 集群任务分配不均
+      - alert: UnbalancedClusterTasks
+        expr: stddev(modbus_cluster_tasks) / avg(modbus_cluster_tasks) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "集群任务分配不均"
+          description: "集群任务分配标准差过大"
+
+  # NTP 服务器监控
+  - name: modbus_ntp_server
+    interval: 30s
+    rules:
+      # NTP 服务器停止
+      - alert: NTPServerStopped
+        expr: modbus_ntp_server_status == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NTP 服务器已停止"
+          description: "NTP 服务器当前未运行"
+      
+      # NTP 请求量异常
+      - alert: UnusualNTPRequestRate
+        expr: rate(modbus_ntp_server_requests_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NTP 请求量异常"
+          description: "NTP 服务器请求率为 {{ $value }}/s，可能存在异常"

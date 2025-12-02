@@ -1,0 +1,64 @@
+# Prometheus 配置文件示例
+# 用于监控 Modbus RTU Manager
+
+global:
+  scrape_interval: 15s      # 默认抓取间隔
+  evaluation_interval: 15s  # 评估规则的间隔
+  
+  # 添加到所有时间序列和告警的外部标签
+  external_labels:
+    monitor: 'modbus-rtu-manager'
+    environment: 'production'
+
+# 告警管理器配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - 'alertmanager:9093'
+
+# 加载规则文件
+rule_files:
+  - 'prometheus_rules.yml'
+
+# 抓取配置
+scrape_configs:
+  # Modbus RTU Manager 监控
+  - job_name: 'modbus-rtu-manager'
+    
+    # 抓取间隔（覆盖全局设置）
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    
+    # 指标路径
+    metrics_path: '/metrics'
+    
+    # 静态目标配置
+    static_configs:
+      - targets: ['localhost:3000']
+        labels:
+          instance: 'main'
+          service: 'modbus-manager'
+    
+    # 如果有多个实例（集群模式）
+    # - targets: ['node1:3000', 'node2:3000', 'node3:3000']
+    #   labels:
+    #     cluster: 'production'
+
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter（系统指标）
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['localhost:9100']
+
+# 远程写入配置（可选）
+# remote_write:
+#   - url: 'http://remote-storage:9009/api/v1/write'
+
+# 远程读取配置（可选）
+# remote_read:
+#   - url: 'http://remote-storage:9009/api/v1/read'

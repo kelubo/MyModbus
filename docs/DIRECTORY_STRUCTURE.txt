@@ -1,0 +1,75 @@
+Modbus RTU Manager - 目录结构
+=====================================
+
+项目根目录
+├── 📄 核心文件
+│   ├── server.js                    # 服务器主文件
+│   ├── database.js                  # 数据库操作
+│   ├── modbusManager.js            # Modbus 管理
+│   ├── package.json                # 依赖配置
+│   └── modbus.db                   # 数据库文件
+│
+├── 🚀 安装脚本
+│   ├── install.bat                 # Windows 安装向导
+│   ├── install.sh                  # Linux 安装向导
+│   ├── README.md                   # 主文档
+│   └── PROJECT_STRUCTURE.md        # 项目结构说明
+│
+├── 🌐 public/                      # 前端文件
+│   ├── index.html                  # 主页面
+│   ├── app.js                      # 前端脚本
+│   └── style.css                   # 样式文件
+│
+├── 🔧 scripts/                     # 脚本文件
+│   │
+│   ├── windows/                    # Windows 脚本
+│   │   ├── install-service.bat     # 安装服务
+│   │   ├── install-service.js      # 安装脚本
+│   │   ├── uninstall-service.bat   # 卸载服务
+│   │   ├── uninstall-service.js    # 卸载脚本
+│   │   ├── start-service.bat       # 启动服务
+│   │   └── stop-service.bat        # 停止服务
+│   │
+│   └── linux/                      # Linux 脚本
+│       ├── install-service.sh      # 通用安装
+│       ├── install-raspberry-pi.sh # 树莓派专用 ⭐
+│       ├── uninstall-service.sh    # 卸载服务
+│       ├── start-service.sh        # 启动服务
+│       ├── stop-service.sh         # 停止服务
+│       ├── restart-service.sh      # 重启服务
+│       ├── status-service.sh       # 查看状态
+│       ├── logs-service.sh         # 查看日志
+│       └── check-system.sh         # 系统检测 🔍
+│
+└── 📚 docs/                        # 文档
+    ├── QUICK_START.md              # 快速开始
+    ├── INSTALL.md                  # 安装说明
+    ├── SERVICE_GUIDE.md            # 服务指南
+    ├── RASPBERRY_PI_GUIDE.md       # 树莓派指南 🍓
+    ├── FILES_OVERVIEW.md           # 文件说明
+    ├── README_CN.md                # 中文文档
+    └── 使用说明.md                 # 使用说明
+
+快速导航
+========
+
+Windows 用户:
+  安装: 双击 install.bat
+  文档: docs/QUICK_START.md
+
+Linux 用户:
+  安装: bash install.sh
+  文档: docs/INSTALL.md
+
+树莓派用户:
+  安装: bash scripts/linux/install-raspberry-pi.sh
+  文档: docs/RASPBERRY_PI_GUIDE.md
+
+开发者:
+  启动: node server.js
+  文档: README.md
+
+系统管理员:
+  Windows: scripts/windows/
+  Linux: scripts/linux/
+  文档: docs/SERVICE_GUIDE.md

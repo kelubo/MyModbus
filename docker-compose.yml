@@ -1,0 +1,180 @@
+# Modbus RTU Manager - Docker Compose 配置
+version: '3.8'
+
+services:
+  # 单机模式（SQLite）
+  modbus-standalone:
+    build: .
+    container_name: modbus-standalone
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - /dev:/dev  # 串口设备访问
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0  # 根据实际串口修改
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - DB_TYPE=sqlite
+      - DB_FILE=/app/data/modbus.db
+      - CLUSTER_ENABLED=false
+    restart: unless-stopped
+    privileged: true  # 串口访问需要
+    profiles:
+      - standalone
+
+  # MySQL 数据库
+  mysql:
+    image: mysql:8
+    container_name: modbus-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=modbus_manager
+      - MYSQL_USER=modbus_user
+      - MYSQL_PASSWORD=modbus_pass
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    profiles:
+      - mysql
+      - cluster
+
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: modbus-postgres
+    environment:
+      - POSTGRES_DB=modbus_manager
+      - POSTGRES_USER=modbus_user
+      - POSTGRES_PASSWORD=modbus_pass
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    profiles:
+      - postgres
+
+  # Redis（集群模式需要）
+  redis:
+    image: redis:7-alpine
+    container_name: modbus-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    profiles:
+      - cluster
+
+  # 主节点（集群模式）
+  modbus-master:
+    build: .
+    container_name: modbus-master
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - /dev:/dev
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - CLUSTER_ENABLED=true
+      - NODE_ID=master-node-1
+      - NODE_ROLE=both
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_TYPE=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=modbus_user
+      - DB_PASSWORD=modbus_pass
+      - DB_NAME=modbus_manager
+    depends_on:
+      - redis
+      - mysql
+    restart: unless-stopped
+    privileged: true
+    profiles:
+      - cluster
+
+  # 工作节点 1（集群模式）
+  modbus-worker-1:
+    build: .
+    container_name: modbus-worker-1
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./data:/app/data
+      - /dev:/dev
+    devices:
+      - /dev/ttyUSB1:/dev/ttyUSB1
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - CLUSTER_ENABLED=true
+      - NODE_ID=worker-node-1
+      - NODE_ROLE=worker
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_TYPE=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=modbus_user
+      - DB_PASSWORD=modbus_pass
+      - DB_NAME=modbus_manager
+    depends_on:
+      - redis
+      - mysql
+    restart: unless-stopped
+    privileged: true
+    profiles:
+      - cluster
+
+  # 工作节点 2（集群模式）
+  modbus-worker-2:
+    build: .
+    container_name: modbus-worker-2
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./data:/app/data
+      - /dev:/dev
+    devices:
+      - /dev/ttyUSB2:/dev/ttyUSB2
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - CLUSTER_ENABLED=true
+      - NODE_ID=worker-node-2
+      - NODE_ROLE=worker
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_TYPE=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=modbus_user
+      - DB_PASSWORD=modbus_pass
+      - DB_NAME=modbus_manager
+    depends_on:
+      - redis
+      - mysql
+    restart: unless-stopped
+    privileged: true
+    profiles:
+      - cluster
+
+volumes:
+  mysql-data:
+  postgres-data:
+  redis-data:
+
+networks:
+  default:
+    name: modbus-network

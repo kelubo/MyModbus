@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modbus RTU 设备管理系统</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <img id="systemLogo" src="/images/logo.svg" alt="Logo" class="system-logo" onerror="this.style.display='none'">
+        <div class="header-title">
+          <h1 id="systemTitle">Modbus RTU 设备管理系统</h1>
+          <p id="systemDescription" class="system-description">工业设备管理与监控平台</p>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="systemSettings" class="btn btn-info" title="系统设置">⚙️</button>
+        <button class="btn btn-info" onclick="window.open('/device-initializer.html', '_blank')" title="设备初始化工具">🔧 设备初始化</button>
+        <button id="startCollection" class="btn btn-success">启动采集</button>
+        <button id="stopCollection" class="btn btn-danger">停止采集</button>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="devices">设备管理</button>
+      <button class="tab-btn" data-tab="charts">数据图表</button>
+      <button class="tab-btn" data-tab="topology">拓扑图</button>
+      <button class="tab-btn" data-tab="alarms">告警管理</button>
+      <button class="tab-btn" data-tab="system">系统监控</button>
+      <button class="tab-btn" data-tab="backup">备份还原</button>
+    </div>
+
+    <div id="devices" class="tab-content active">
+      <div class="section">
+        <h2>设备列表</h2>
+        <button id="addDevice" class="btn btn-primary">添加设备</button>
+        <table id="deviceTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>名称</th>
+              <th>连接类型</th>
+              <th>从站ID</th>
+              <th>串口/IP地址</th>
+              <th>波特率/端口</th>
+              <th>寄存器地址</th>
+              <th>数量</th>
+              <th>类型</th>
+              <th>采集间隔(ms)</th>
+              <th>位置</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="charts" class="tab-content">
+      <div class="section">
+        <h2>实时数据监控</h2>
+        <div id="chartContainer"></div>
+      </div>
+    </div>
+
+    <div id="topology" class="tab-content">
+      <div class="section">
+        <h2>设备拓扑图</h2>
+        <div class="topology-controls">
+          <button id="refreshTopology" class="btn btn-primary">刷新</button>
+          <button id="autoLayoutTopology" class="btn btn-info">自动布局</button>
+          <button id="resetZoom" class="btn btn-secondary">重置视图</button>
+          <div class="topology-legend">
+            <span class="legend-item">
+              <span class="legend-dot status-online"></span> 在线
+            </span>
+            <span class="legend-item">
+              <span class="legend-dot status-offline"></span> 离线
+            </span>
+            <span class="legend-item">
+              <span class="legend-dot status-alarm"></span> 告警
+            </span>
+            <span class="legend-item">
+              <span class="legend-dot status-disabled"></span> 禁用
+            </span>
+          </div>
+        </div>
+        <div id="topologyCanvas" class="topology-canvas">
+          <svg id="topologySvg" width="100%" height="450"></svg>
+        </div>
+        <div class="topology-info">
+          <div class="info-card">
+            <h4>设备统计</h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">总设备数:</span>
+                <span class="info-value" id="totalDevices">0</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">在线设备:</span>
+                <span class="info-value" id="onlineDevices">0</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">离线设备:</span>
+                <span class="info-value" id="offlineDevices">0</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">告警设备:</span>
+                <span class="info-value" id="alarmDevices">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="info-card">
+            <h4>连接类型</h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">RTU (串口):</span>
+                <span class="info-value" id="rtuDevices">0</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">TCP (网络):</span>
+                <span class="info-value" id="tcpDevices">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="alarms" class="tab-content">
+      <div class="section">
+        <h2>告警管理</h2>
+        
+        <!-- 告警统计 -->
+        <div class="alarm-stats">
+          <div class="stat-card stat-critical">
+            <div class="stat-label">严重告警</div>
+            <div class="stat-value" id="criticalCount">0</div>
+          </div>
+          <div class="stat-card stat-warning">
+            <div class="stat-label">警告告警</div>
+            <div class="stat-value" id="warningCount">0</div>
+          </div>
+          <div class="stat-card stat-info">
+            <div class="stat-label">信息告警</div>
+            <div class="stat-value" id="infoCount">0</div>
+          </div>
+          <div class="stat-card stat-total">
+            <div class="stat-label">活动告警</div>
+            <div class="stat-value" id="totalAlarmCount">0</div>
+          </div>
+        </div>
+
+        <!-- 活动告警列表 -->
+        <div class="alarm-section">
+          <h3>活动告警</h3>
+          <button id="clearAllAlarms" class="btn btn-danger">清除所有告警</button>
+          <div id="activeAlarmsList" class="alarm-list"></div>
+        </div>
+
+        <!-- 告警规则管理 -->
+        <div class="alarm-section">
+          <h3>告警规则</h3>
+          <button id="addAlarmRule" class="btn btn-primary">添加规则</button>
+          <button id="notificationSettings" class="btn btn-info">通知设置</button>
+          <table id="alarmRuleTable"></table>
+            <thead>
+              <tr>
+                <th>规则名称</th>
+                <th>设备</th>
+                <th>条件</th>
+                <th>阈值</th>
+                <th>级别</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <!-- 告警历史 -->
+        <div class="alarm-section">
+          <h3>告警历史</h3>
+          <button id="refreshAlarmHistory" class="btn btn-primary">刷新</button>
+          <div id="alarmHistoryList" class="alarm-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="system" class="tab-content">
+      <div class="section">
+        <h2>系统监控</h2>
+        <button id="refreshSystem" class="btn btn-primary">刷新</button>
+        
+        <!-- 集群状态 -->
+        <div id="clusterSection" style="display: none;">
+          <h3>集群状态</h3>
+          <div class="cluster-stats">
+            <div class="cluster-stat-card">
+              <div class="cluster-stat-label">运行模式</div>
+              <div class="cluster-stat-value" id="clusterMode">--</div>
+            </div>
+            <div class="cluster-stat-card">
+              <div class="cluster-stat-label">活动节点</div>
+              <div class="cluster-stat-value" id="clusterNodes">--</div>
+            </div>
+            <div class="cluster-stat-card">
+              <div class="cluster-stat-label">当前节点</div>
+              <div class="cluster-stat-value" id="currentNode">--</div>
+            </div>
+            <div class="cluster-stat-card">
+              <div class="cluster-stat-label">任务总数</div>
+              <div class="cluster-stat-value" id="totalTasks">--</div>
+            </div>
+          </div>
+
+          <h3>节点列表</h3>
+          <table id="clusterNodesTable">
+            <thead>
+              <tr>
+                <th>节点ID</th>
+                <th>角色</th>
+                <th>主机名</th>
+                <th>CPU核心</th>
+                <th>内存(GB)</th>
+                <th>负载</th>
+                <th>运行时间</th>
+                <th>最后心跳</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+
+          <h3>任务分配</h3>
+          <div id="taskDistribution" class="task-distribution"></div>
+        </div>
+        
+        <h3>本地系统信息</h3>
+        <div class="system-grid">
+          <div class="system-card">
+            <h3>CPU使用率</h3>
+            <div class="system-value" id="cpuUsage">--</div>
+            <div class="system-detail" id="cpuCores">--</div>
+          </div>
+          
+          <div class="system-card">
+            <h3>内存使用</h3>
+            <div class="system-value" id="memUsage">--</div>
+            <div class="system-detail" id="memDetail">--</div>
+          </div>
+          
+          <div class="system-card">
+            <h3>操作系统</h3>
+            <div class="system-info" id="osInfo">--</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>磁盘使用情况</h3>
+          <table id="diskTable">
+            <thead>
+              <tr>
+                <th>文件系统</th>
+                <th>类型</th>
+                <th>总容量(GB)</th>
+                <th>已使用(GB)</th>
+                <th>可用(GB)</th>
+                <th>使用率</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>网络接口</h3>
+          <table id="networkTable">
+            <thead>
+              <tr>
+                <th>接口名称</th>
+                <th>IPv4地址</th>
+                <th>IPv6地址</th>
+                <th>MAC地址</th>
+                <th>速度(Mbps)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="backup" class="tab-content">
+      <div class="section">
+        <h2>备份管理</h2>
+        <div style="margin-bottom: 20px;">
+          <button id="createBackup" class="btn btn-success">创建备份</button>
+          <button id="refreshBackups" class="btn btn-primary">刷新列表</button>
+        </div>
+
+        <div class="backup-info">
+          <h3>备份说明</h3>
+          <ul>
+            <li>备份包含数据库和配置文件</li>
+            <li>系统自动保留最近 10 个备份</li>
+            <li>还原备份前会自动备份当前数据</li>
+            <li>还原后建议重启服务</li>
+          </ul>
+        </div>
+
+        <h3>备份列表</h3>
+        <div id="backupStatus"></div>
+        
+        <table id="backupTable">
+          <thead>
+            <tr>
+              <th>备份名称</th>
+              <th>大小</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 20px; color: #999;">
+                加载中...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="modalTitle">添加设备</h2>
+      <form id="deviceForm">
+        <input type="hidden" id="deviceId">
+        <div class="form-group">
+          <label>设备名称:</label>
+          <input type="text" id="deviceName" required>
+        </div>
+        <div class="form-group">
+          <label>连接类型:</label>
+          <select id="connectionType">
+            <option value="rtu">Modbus RTU (串口)</option>
+            <option value="tcp">Modbus TCP (网络)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>从站ID:</label>
+          <input type="number" id="slaveId" required min="1" max="247">
+        </div>
+        <div class="form-group" id="rtuFields">
+          <div class="form-group">
+            <label>串口:</label>
+            <input type="text" id="port" placeholder="例如: COM1 或 /dev/ttyUSB0">
+          </div>
+          <div class="form-group">
+            <label>波特率:</label>
+            <select id="baudrate">
+              <option value="9600">9600</option>
+              <option value="19200">19200</option>
+              <option value="38400">38400</option>
+              <option value="57600">57600</option>
+              <option value="115200">115200</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" id="tcpFields" style="display: none;">
+          <div class="form-group">
+            <label>IP地址:</label>
+            <input type="text" id="ipAddress" placeholder="例如: 192.168.1.100">
+          </div>
+          <div class="form-group">
+            <label>TCP端口:</label>
+            <input type="number" id="tcpPort" value="502" min="1" max="65535">
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>寄存器地址:</label>
+            <input type="number" id="registerAddress" required min="0">
+          </div>
+          <div class="form-group">
+            <label>寄存器数量:</label>
+            <input type="number" id="registerCount" value="1" min="1">
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>数据类型:</label>
+            <select id="dataType">
+              <option value="holding">保持寄存器</option>
+              <option value="input">输入寄存器</option>
+              <option value="coil">线圈</option>
+              <option value="discrete">离散输入</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>采集间隔(ms):</label>
+            <input type="number" id="interval" value="5000" min="1000">
+          </div>
+        </div>
+        
+        <h3 style="margin: 15px 0 10px 0; padding-top: 15px; border-top: 1px solid #ddd; font-size: 16px;">位置信息</h3>
+        
+        <div class="form-group">
+          <label>位置:</label>
+          <select id="locationId">
+            <option value="">未指定位置</option>
+          </select>
+          <button type="button" class="btn btn-info" onclick="openLocationManager()" style="margin-top: 5px;">管理位置</button>
+        </div>
+        
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>楼层:</label>
+            <input type="text" id="floor" placeholder="例如: 1F, 2F, B1">
+          </div>
+          
+          <div class="form-group">
+            <label>房间:</label>
+            <input type="text" id="room" placeholder="例如: 101, 机房A">
+          </div>
+          
+          <div class="form-group">
+            <label>机柜:</label>
+            <input type="text" id="rack" placeholder="例如: R01, 机柜A">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>GPS 坐标:</label>
+          <div class="form-grid-2">
+            <input type="number" id="latitude" placeholder="纬度" step="0.000001" min="-90" max="90">
+            <input type="number" id="longitude" placeholder="经度" step="0.000001" min="-180" max="180">
+          </div>
+          <small class="hint-text">可选：设备的 GPS 坐标</small>
+        </div>
+        
+        <div class="form-group">
+          <label>位置备注:</label>
+          <textarea id="positionNotes" rows="2" placeholder="例如: 靠近窗户，第三排第二个"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="enabled" checked>
+            启用
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">保存</button>
+          <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 设置设备IP模态框 -->
+  <div id="setIPModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>设置设备IP地址</h2>
+      <p style="color: #666; margin-bottom: 15px;">通过Modbus写入寄存器修改嵌入式设备自身的IP地址</p>
+      <form id="setIPForm">
+        <input type="hidden" id="setIPDeviceId">
+        <div class="form-group">
+          <label>设备名称:</label>
+          <div id="setIPDeviceName" style="font-weight: bold; padding: 8px 0;"></div>
+        </div>
+        <div class="form-group">
+          <label>新IP地址:</label>
+          <input type="text" id="newDeviceIP" placeholder="例如: 192.168.1.100" required pattern="^(\d{1,3}\.){3}\d{1,3}$">
+          <small style="color: #666; display: block; margin-top: 5px;">格式: xxx.xxx.xxx.xxx</small>
+        </div>
+        <div class="form-group">
+          <label>IP寄存器起始地址:</label>
+          <input type="number" id="ipRegisterAddress" value="0" required min="0">
+          <small style="color: #666; display: block; margin-top: 5px;">设备存储IP地址的寄存器起始地址（占用2个连续寄存器）</small>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">设置IP</button>
+          <button type="button" class="btn btn-secondary" id="cancelSetIPBtn">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 修改Client端连接IP模态框 -->
+  <div id="changeClientIPModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>修改Client端连接IP</h2>
+      <p style="color: #666; margin-bottom: 15px;">修改本系统连接到此设备时使用的IP地址和端口</p>
+      <form id="changeClientIPForm">
+        <input type="hidden" id="changeClientIPDeviceId">
+        <div class="form-group">
+          <label>设备名称:</label>
+          <div id="changeClientIPDeviceName" style="font-weight: bold; padding: 8px 0;"></div>
+        </div>
+        <div class="form-group">
+          <label>当前连接地址:</label>
+          <div id="currentClientIP" style="padding: 8px 0; color: #666;"></div>
+        </div>
+        <div class="form-group">
+          <label>新IP地址:</label>
+          <input type="text" id="newClientIP" placeholder="例如: 192.168.1.100" required pattern="^(\d{1,3}\.){3}\d{1,3}$">
+          <small style="color: #666; display: block; margin-top: 5px;">格式: xxx.xxx.xxx.xxx</small>
+        </div>
+        <div class="form-group">
+          <label>新端口:</label>
+          <input type="number" id="newClientPort" value="502" required min="1" max="65535">
+          <small style="color: #666; display: block; margin-top: 5px;">Modbus TCP默认端口为502</small>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">更新连接IP</button>
+          <button type="button" class="btn btn-secondary" id="cancelChangeClientIPBtn">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 告警规则模态框 -->
+  <div id="alarmRuleModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="alarmRuleModalTitle">添加告警规则</h2>
+      <form id="alarmRuleForm">
+        <input type="hidden" id="alarmRuleId">
+        <div class="form-group">
+          <label>规则名称:</label>
+          <input type="text" id="alarmRuleName" required placeholder="例如: 温度过高告警">
+        </div>
+        <div class="form-group">
+          <label>选择设备:</label>
+          <select id="alarmDeviceId" required>
+            <option value="">请选择设备</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>告警条件:</label>
+          <select id="alarmCondition" required>
+            <option value="gt">大于 (&gt;)</option>
+            <option value="gte">大于等于 (&gt;=)</option>
+            <option value="lt">小于 (&lt;)</option>
+            <option value="lte">小于等于 (&lt;=)</option>
+            <option value="eq">等于 (=)</option>
+            <option value="ne">不等于 (≠)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>阈值:</label>
+          <input type="number" id="alarmThreshold" step="0.01" required placeholder="例如: 80">
+        </div>
+        <div class="form-group">
+          <label>告警级别:</label>
+          <select id="alarmLevel" required>
+            <option value="info">信息</option>
+            <option value="warning" selected>警告</option>
+            <option value="critical">严重</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="alarmEnabled" checked>
+            启用规则
+          </label>
+        </div>
+        
+        <h3 style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 20px;">通知设置</h3>
+        
+        <div class="form-group">
+          <label>邮件通知:</label>
+          <input type="text" id="notificationEmail" placeholder="多个邮箱用逗号分隔，例如: user1@example.com, user2@example.com">
+          <small style="color: #666; display: block; margin-top: 5px;">留空则不发送邮件通知</small>
+        </div>
+        
+        <div class="form-group">
+          <label>短信通知:</label>
+          <input type="text" id="notificationSMS" placeholder="多个手机号用逗号分隔，例如: 13800138000, 13900139000">
+          <small style="color: #666; display: block; margin-top: 5px;">留空则不发送短信通知</small>
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="notificationWecom">
+            发送企业微信通知
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="notificationDingtalk">
+            发送钉钉通知
+          </label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">保存</button>
+          <button type="button" class="btn btn-secondary" id="cancelAlarmRuleBtn">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 通知配置模态框 -->
+  <div id="notificationModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <span class="close">&times;</span>
+      <h2>通知设置</h2>
+      
+      <div class="notification-tabs">
+        <button class="notification-tab-btn active" data-tab="email">邮件通知</button>
+        <button class="notification-tab-btn" data-tab="sms">短信通知</button>
+        <button class="notification-tab-btn" data-tab="wecom">企业微信</button>
+        <button class="notification-tab-btn" data-tab="dingtalk">钉钉</button>
+      </div>
+
+      <!-- 邮件配置 -->
+      <div id="emailConfig" class="notification-tab-content active">
+        <form id="emailConfigForm">
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="emailEnabled">
+              启用邮件通知
+            </label>
+          </div>
+          <div class="form-group">
+            <label>SMTP服务器:</label>
+            <input type="text" id="emailHost" placeholder="例如: smtp.gmail.com">
+          </div>
+          <div class="form-group">
+            <label>SMTP端口:</label>
+            <input type="number" id="emailPort" value="587">
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="emailSecure">
+              使用SSL/TLS
+            </label>
+          </div>
+          <div class="form-group">
+            <label>发件人邮箱:</label>
+            <input type="email" id="emailFrom" placeholder="例如: alarm@example.com">
+          </div>
+          <div class="form-group">
+            <label>邮箱用户名:</label>
+            <input type="text" id="emailUser" placeholder="通常是邮箱地址">
+          </div>
+          <div class="form-group">
+            <label>邮箱密码/授权码:</label>
+            <input type="password" id="emailPassword" placeholder="SMTP密码或授权码">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存配置</button>
+            <button type="button" class="btn btn-secondary" onclick="testNotification('email')">发送测试</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 短信配置 -->
+      <div id="smsConfig" class="notification-tab-content">
+        <form id="smsConfigForm">
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="smsEnabled">
+              启用短信通知
+            </label>
+          </div>
+          <div class="form-group">
+            <label>短信服务商API地址:</label>
+            <input type="text" id="smsApiUrl" placeholder="例如: https://api.sms-provider.com/send">
+          </div>
+          <div class="form-group">
+            <label>API密钥:</label>
+            <input type="text" id="smsApiKey" placeholder="您的API密钥">
+          </div>
+          <div class="form-group">
+            <label>签名名称:</label>
+            <input type="text" id="smsSignName" placeholder="短信签名">
+          </div>
+          <div class="form-group">
+            <label>模板代码:</label>
+            <input type="text" id="smsTemplateCode" placeholder="短信模板代码">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存配置</button>
+            <button type="button" class="btn btn-secondary" onclick="testNotification('sms')">发送测试</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 企业微信配置 -->
+      <div id="wecomConfig" class="notification-tab-content">
+        <form id="wecomConfigForm">
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="wecomEnabled">
+              启用企业微信通知
+            </label>
+          </div>
+          <div class="form-group">
+            <label>Webhook地址:</label>
+            <input type="text" id="wecomWebhook" placeholder="企业微信机器人Webhook URL">
+            <small style="color: #666; display: block; margin-top: 5px;">
+              在企业微信群聊中添加机器人，获取Webhook地址
+            </small>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存配置</button>
+            <button type="button" class="btn btn-secondary" onclick="testNotification('wecom')">发送测试</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 钉钉配置 -->
+      <div id="dingtalkConfig" class="notification-tab-content">
+        <form id="dingtalkConfigForm">
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="dingtalkEnabled">
+              启用钉钉通知
+            </label>
+          </div>
+          <div class="form-group">
+            <label>Webhook地址:</label>
+            <input type="text" id="dingtalkWebhook" placeholder="钉钉机器人Webhook URL">
+            <small style="color: #666; display: block; margin-top: 5px;">
+              在钉钉群聊中添加自定义机器人，获取Webhook地址
+            </small>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存配置</button>
+            <button type="button" class="btn btn-secondary" onclick="testNotification('dingtalk')">发送测试</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 系统设置模态框 -->
+  <div id="systemSettingsModal" class="modal">
+    <div class="modal-content modal-content-large">
+      <span class="close">&times;</span>
+      <h2>系统设置</h2>
+      
+      <!-- 设置标签页 -->
+      <div class="settings-tabs">
+        <button class="settings-tab-btn active" data-settings-tab="basic">基本设置</button>
+        <button class="settings-tab-btn" data-settings-tab="appearance">外观设置</button>
+        <button class="settings-tab-btn" data-settings-tab="time">时间设置</button>
+      </div>
+
+      <form id="systemSettingsForm">
+        <!-- 基本设置 -->
+        <div id="basicSettings" class="settings-tab-content active">
+          <div class="form-group">
+            <label>系统名称:</label>
+            <input type="text" id="systemName" placeholder="例如: 我的工业监控系统">
+          </div>
+          
+          <div class="form-group">
+            <label>系统标题:</label>
+            <input type="text" id="systemTitleInput" placeholder="例如: Modbus RTU 设备管理系统">
+          </div>
+          
+          <div class="form-group">
+            <label>系统描述:</label>
+            <input type="text" id="systemDescriptionInput" placeholder="例如: 工业设备管理与监控平台">
+          </div>
+        </div>
+
+        <!-- 外观设置 -->
+        <div id="appearanceSettings" class="settings-tab-content">
+          <div class="form-group">
+            <label>系统Logo:</label>
+            <div class="logo-preview-container">
+              <img id="logoPreview" src="/images/logo.svg" alt="Logo预览" class="logo-preview">
+            </div>
+            <div class="logo-upload-controls">
+              <input type="file" id="logoUpload" accept="image/*" style="display: none;">
+              <button type="button" class="btn btn-primary" onclick="document.getElementById('logoUpload').click()">
+                上传Logo
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="resetLogo()">
+                重置为默认
+              </button>
+            </div>
+            <small class="hint-text">
+              支持 PNG, JPG, GIF, SVG 格式，最大 5MB
+            </small>
+          </div>
+          
+          <div class="form-group">
+            <label>主题色:</label>
+            <div class="color-picker-group">
+              <input type="color" id="primaryColor" class="color-input">
+              <input type="text" id="primaryColorText" placeholder="#3498db" class="color-text-input">
+            </div>
+          </div>
+        </div>
+
+        <!-- 时间设置 -->
+        <div id="timeSettings" class="settings-tab-content">
+          <div class="form-group">
+            <label>时区:</label>
+            <select id="timezone">
+              <option value="Asia/Shanghai">中国标准时间 (UTC+8)</option>
+              <option value="Asia/Tokyo">日本标准时间 (UTC+9)</option>
+              <option value="Asia/Seoul">韩国标准时间 (UTC+9)</option>
+              <option value="Asia/Hong_Kong">香港时间 (UTC+8)</option>
+              <option value="Asia/Singapore">新加坡时间 (UTC+8)</option>
+              <option value="Asia/Bangkok">曼谷时间 (UTC+7)</option>
+              <option value="Asia/Dubai">迪拜时间 (UTC+4)</option>
+              <option value="Europe/London">伦敦时间 (UTC+0)</option>
+              <option value="Europe/Paris">巴黎时间 (UTC+1)</option>
+              <option value="Europe/Berlin">柏林时间 (UTC+1)</option>
+              <option value="Europe/Moscow">莫斯科时间 (UTC+3)</option>
+              <option value="America/New_York">纽约时间 (UTC-5)</option>
+              <option value="America/Chicago">芝加哥时间 (UTC-6)</option>
+              <option value="America/Los_Angeles">洛杉矶时间 (UTC-8)</option>
+              <option value="America/Toronto">多伦多时间 (UTC-5)</option>
+              <option value="Australia/Sydney">悉尼时间 (UTC+10)</option>
+              <option value="Pacific/Auckland">奥克兰时间 (UTC+12)</option>
+              <option value="UTC">协调世界时 (UTC+0)</option>
+            </select>
+            <small class="hint-text">
+              选择系统使用的时区，影响所有时间显示
+            </small>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>时间格式:</label>
+              <select id="timeFormat">
+                <option value="24h">24小时制 (23:59)</option>
+                <option value="12h">12小时制 (11:59 PM)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>日期格式:</label>
+              <select id="dateFormat">
+                <option value="YYYY-MM-DD">年-月-日 (2024-12-01)</option>
+                <option value="MM/DD/YYYY">月/日/年 (12/01/2024)</option>
+                <option value="DD/MM/YYYY">日/月/年 (01/12/2024)</option>
+                <option value="YYYY年MM月DD日">中文格式 (2024年12月01日)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>当前系统时间:</label>
+            <div id="currentSystemTime" class="time-display">
+              --
+            </div>
+            <small class="hint-text">
+              根据所选时区和格式显示的当前时间
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>时间源:</label>
+            <select id="timeSource">
+              <option value="local">本地时钟</option>
+              <option value="gps">GPS 时间 (NMEA)</option>
+              <option value="gps-pps">GPS + PPS (高精度)</option>
+              <option value="ntp">NTP 服务器</option>
+            </select>
+            <small class="hint-text">
+              选择系统时间的来源。PPS 提供微秒级精度
+            </small>
+          </div>
+
+          <div class="form-group" id="gpsSettings" style="display: none;">
+            <label>GPS 配置:</label>
+            <div class="form-row">
+              <div class="form-group">
+                <label>串口:</label>
+                <input type="text" id="gpsPort" placeholder="/dev/ttyUSB0">
+              </div>
+              <div class="form-group">
+                <label>波特率:</label>
+                <select id="gpsBaudRate">
+                  <option value="4800">4800</option>
+                  <option value="9600" selected>9600</option>
+                  <option value="19200">19200</option>
+                  <option value="38400">38400</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" id="ppsSettings" style="display: none;">
+            <label>PPS 配置:</label>
+            <div class="form-row">
+              <div class="form-group">
+                <label>PPS 设备:</label>
+                <input type="text" id="ppsDevice" placeholder="/dev/pps0">
+                <small class="hint-text">
+                  PPS 设备路径，通常为 /dev/pps0
+                </small>
+              </div>
+            </div>
+            <div class="pps-info">
+              <strong>PPS 配置说明:</strong>
+              <ul style="margin: 10px 0; padding-left: 20px; font-size: 13px;">
+                <li>确保 GPS 模块的 PPS 引脚已连接到系统 GPIO</li>
+                <li>加载内核模块: <code>sudo modprobe pps-gpio</code></li>
+                <li>安装 pps-tools: <code>sudo apt-get install pps-tools</code></li>
+                <li>验证 PPS 信号: <code>sudo ppstest /dev/pps0</code></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="form-group" id="ntpSettings" style="display: none;">
+            <label>NTP 服务器:</label>
+            <input type="text" id="ntpServer" placeholder="pool.ntp.org">
+            <small class="hint-text">
+              NTP 服务器地址，例如: pool.ntp.org, time.google.com
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>同步间隔:</label>
+            <select id="syncInterval">
+              <option value="300000">5 分钟</option>
+              <option value="900000">15 分钟</option>
+              <option value="1800000">30 分钟</option>
+              <option value="3600000" selected>1 小时</option>
+              <option value="7200000">2 小时</option>
+              <option value="86400000">24 小时</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>时间同步状态:</label>
+            <div id="timeSyncStatus" class="time-sync-status">
+              <div class="status-item">
+                <span class="status-label">当前时间源:</span>
+                <span class="status-value" id="currentTimeSource">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">最后同步:</span>
+                <span class="status-value" id="lastTimeSync">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">GPS 状态:</span>
+                <span class="status-value" id="gpsStatus">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">PPS 状态:</span>
+                <span class="status-value" id="ppsStatus">--</span>
+              </div>
+              <div class="status-item" id="ppsOffsetItem" style="display: none;">
+                <span class="status-label">PPS 偏移:</span>
+                <span class="status-value" id="ppsOffset">--</span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-info" onclick="syncTimeNow()">立即同步</button>
+          </div>
+
+          <div class="form-group">
+            <label>同步统计:</label>
+            <div class="time-sync-status">
+              <div class="status-item">
+                <span class="status-label">健康状态:</span>
+                <span class="status-value" id="syncHealthStatus">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">总同步次数:</span>
+                <span class="status-value" id="syncTotalCount">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">成功率:</span>
+                <span class="status-value" id="syncSuccessRate">--</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">平均耗时:</span>
+                <span class="status-value" id="syncAvgDuration">--</span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="resetSyncStats()" style="margin-top: 10px;">重置统计</button>
+          </div>
+
+          <h3 style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #ecf0f1;">NTP 服务器</h3>
+          
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="ntpServerEnabled">
+              启用 NTP 服务器
+            </label>
+            <small class="hint-text">
+              启用后，本系统将作为 NTP 服务器，向其他设备提供时间服务
+            </small>
+          </div>
+
+          <div id="ntpServerSettings" style="display: none;">
+            <div class="form-group">
+              <label>时钟源:</label>
+              <select id="ntpServerClockSource" disabled>
+                <option value="local">本地时钟</option>
+                <option value="gps">GPS 时间</option>
+                <option value="gps-pps">GPS + PPS</option>
+                <option value="ntp">NTP 服务器（级联）</option>
+              </select>
+              <small class="hint-text">
+                自动跟随系统时间源。当系统使用 NTP 时，本服务器将作为二级 NTP 服务器
+              </small>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>服务器端口:</label>
+                <input type="number" id="ntpServerPort" min="1" max="65535" value="123" placeholder="123">
+                <small class="hint-text">
+                  默认 123（需要 root 权限），可使用 1123
+                </small>
+              </div>
+
+              <div class="form-group">
+                <label>层级 (Stratum):</label>
+                <input type="number" id="ntpServerStratum" min="1" max="15" value="1" placeholder="1">
+                <small class="hint-text">
+                  1=主时钟源（GPS），10=本地时钟
+                </small>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>NTP 服务器状态:</label>
+              <div id="ntpServerStatus" class="time-sync-status">
+                <div class="status-item">
+                  <span class="status-label">运行状态:</span>
+                  <span class="status-value" id="ntpServerRunning">--</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">时钟源:</span>
+                  <span class="status-value" id="ntpServerCurrentSource">--</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">请求次数:</span>
+                  <span class="status-value" id="ntpServerRequests">--</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">最后请求:</span>
+                  <span class="status-value" id="ntpServerLastRequest">--</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <button type="button" id="startNtpServer" class="btn btn-success">
+                启动服务器
+              </button>
+              <button type="button" id="stopNtpServer" class="btn btn-danger">
+                停止服务器
+              </button>
+              <button type="button" id="refreshNtpServerStatus" class="btn btn-info">
+                刷新状态
+              </button>
+            </div>
+
+            <div class="ntp-server-info">
+              <strong>使用说明:</strong>
+              <ul style="margin: 10px 0; padding-left: 20px; font-size: 13px; line-height: 1.8;">
+                <li>NTP 服务器可以使用 GPS 或本地时钟作为时钟源</li>
+                <li>使用 GPS 作为时钟源时，层级自动设置为 1（主时钟源）</li>
+                <li>其他设备可以通过本机 IP 地址同步时间</li>
+                <li>端口 123 需要 root 权限，建议使用 sudo 启动或使用其他端口</li>
+                <li>客户端配置示例: <code>ntpdate -q &lt;本机IP&gt;</code></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">保存设置</button>
+          <button type="button" class="btn btn-secondary" id="cancelSystemSettings">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 位置管理模态框 -->
+  <div id="locationManagerModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+      <span class="close" onclick="closeLocationManager()">&times;</span>
+      <h2>位置管理</h2>
+      
+      <div style="margin-bottom: 15px;">
+        <button class="btn btn-primary" onclick="openAddLocationForm()">添加位置</button>
+      </div>
+      
+      <div id="locationTree" class="location-tree">
+        <!-- 位置树将在这里动态生成 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加/编辑位置模态框 -->
+  <div id="locationFormModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeLocationForm()">&times;</span>
+      <h2 id="locationFormTitle">添加位置</h2>
+      
+      <form id="locationForm">
+        <input type="hidden" id="locationFormId">
+        
+        <div class="form-group">
+          <label>位置名称:</label>
+          <input type="text" id="locationName" required placeholder="例如: 总部大楼, 生产车间A">
+        </div>
+        
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>位置类型:</label>
+            <select id="locationType">
+              <option value="building">建筑物</option>
+              <option value="floor">楼层</option>
+              <option value="room">房间</option>
+              <option value="area">区域</option>
+              <option value="workshop">车间</option>
+              <option value="office">办公室</option>
+              <option value="warehouse">仓库</option>
+              <option value="other">其他</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>上级位置:</label>
+            <select id="locationParent">
+              <option value="">无（顶级位置）</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>地址:</label>
+          <input type="text" id="locationAddress" placeholder="详细地址">
+        </div>
+        
+        <div class="form-group">
+          <label>GPS 坐标:</label>
+          <div class="form-grid-2">
+            <input type="number" id="locationLatitude" placeholder="纬度" step="0.000001" min="-90" max="90">
+            <input type="number" id="locationLongitude" placeholder="经度" step="0.000001" min="-180" max="180">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>描述:</label>
+          <textarea id="locationDescription" rows="2" placeholder="位置描述信息"></textarea>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">保存</button>
+          <button type="button" class="btn btn-secondary" onclick="closeLocationForm()">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

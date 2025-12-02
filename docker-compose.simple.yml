@@ -1,0 +1,21 @@
+# 简化版 Docker Compose - 单机模式
+version: '3.8'
+
+services:
+  modbus-manager:
+    build: .
+    container_name: modbus-manager
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - /dev:/dev  # 串口设备访问
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0  # 根据实际串口修改
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - DB_TYPE=sqlite
+      - DB_FILE=/app/data/modbus.db
+    restart: unless-stopped
+    privileged: true  # 串口访问需要

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modbus 设备初始化工具</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .initializer-container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+
+    .step-container {
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #ecf0f1;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      background: #3498db;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      margin-right: 15px;
+    }
+
+    .step-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-group-full {
+      grid-column: 1 / -1;
+    }
+
+    .info-box {
+      background: #e8f4f8;
+      border-left: 4px solid #3498db;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+
+    .warning-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      color: #856404;
+    }
+
+    .log-container {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+
+    .log-entry {
+      margin: 5px 0;
+      padding: 3px 0;
+    }
+
+    .log-success {
+      color: #2ecc71;
+    }
+
+    .log-error {
+      color: #e74c3c;
+    }
+
+    .log-warning {
+      color: #f39c12;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .register-map-table {
+      width: 100%;
+      margin-top: 15px;
+    }
+
+    .register-map-table th {
+      background: #f8f9fa;
+      padding: 10px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .register-map-table td {
+      padding: 10px;
+      border-bottom: 1px solid #dee2e6;
+    }
+  </style>
+</head>
+<body>
+  <div class="initializer-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+      <div>
+        <h1>Modbus 设备初始化工具</h1>
+        <p style="color: #666;">配置新的 Modbus 从节点设备</p>
+      </div>
+      <button class="btn btn-info" onclick="window.location.href='/'">返回主页</button>
+    </div>
+
+    <div class="warning-box">
+      <strong>⚠️ 注意事项：</strong>
+      <ul style="margin: 10px 0 0 20px; padding: 0;">
+        <li>请确保设备已正确连接到系统</li>
+        <li>修改配置前请记录当前设置，以便恢复</li>
+        <li>某些设备修改配置后需要重启才能生效</li>
+        <li>修改波特率或从站 ID 后，需要使用新参数重新连接</li>
+      </ul>
+    </div>
+
+    <!-- 步骤 1: 连接设置 -->
+    <div class="step-container">
+      <div class="step-header">
+        <div class="step-number">1</div>
+        <div class="step-title">连接设置</div>
+      </div>
+
+      <div class="form-group">
+        <label>连接类型:</label>
+        <select id="connectionType" onchange="toggleConnectionFields()">
+          <option value="rtu">Modbus RTU (串口)</option>
+          <option value="tcp">Modbus TCP (网络)</option>
+        </select>
+      </div>
+
+      <div id="rtuConnectionFields">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>串口:</label>
+            <input type="text" id="rtuPort" placeholder="例如: COM1 或 /dev/ttyUSB0" value="COM1">
+          </div>
+          <div class="form-group">
+            <label>波特率:</label>
+            <select id="rtuBaudRate">
+              <option value="2400">2400</option>
+              <option value="4800">4800</option>
+              <option value="9600" selected>9600</option>
+              <option value="19200">19200</option>
+              <option value="38400">38400</option>
+              <option value="57600">57600</option>
+              <option value="115200">115200</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="tcpConnectionFields" style="display: none;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>IP 地址:</label>
+            <input type="text" id="tcpIP" placeholder="例如: 192.168.1.100" value="192.168.1.100">
+          </div>
+          <div class="form-group">
+            <label>端口:</label>
+            <input type="number" id="tcpPort" value="502" min="1" max="65535">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>当前从站 ID:</label>
+        <input type="number" id="currentSlaveId" value="1" min="1" max="247">
+        <small class="hint-text">设备当前使用的从站 ID</small>
+      </div>
+
+      <button class="btn btn-primary" onclick="testConnection()">测试连接</button>
+    </div>
+
+    <!-- 步骤 2: 寄存器地址映射 -->
+    <div class="step-container">
+      <div class="step-header">
+        <div class="step-number">2</div>
+        <div class="step-title">寄存器地址映射</div>
+      </div>
+
+      <div class="info-box">
+        <strong>ℹ️ 说明：</strong> 不同厂商的设备寄存器地址可能不同，请参考设备手册填写正确的地址。留空表示不配置该项。
+      </div>
+
+      <table class="register-map-table">
+        <thead>
+          <tr>
+            <th>配置项</th>
+            <th>寄存器地址</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>从站 ID</td>
+            <td><input type="number" id="regSlaveId" placeholder="例如: 0" min="0" style="width: 100px;"></td>
+            <td>设备从站 ID 寄存器地址</td>
+          </tr>
+          <tr>
+            <td>波特率</td>
+            <td><input type="number" id="regBaudRate" placeholder="例如: 1" min="0" style="width: 100px;"></td>
+            <td>串口波特率配置寄存器</td>
+          </tr>
+          <tr>
+            <td>IP 地址</td>
+            <td><input type="number" id="regIPAddress" placeholder="例如: 10" min="0" style="width: 100px;"></td>
+            <td>设备 IP 地址（占用 2 个寄存器）</td>
+          </tr>
+          <tr>
+            <td>子网掩码</td>
+            <td><input type="number" id="regSubnetMask" placeholder="例如: 12" min="0" style="width: 100px;"></td>
+            <td>子网掩码（占用 2 个寄存器）</td>
+          </tr>
+          <tr>
+            <td>网关</td>
+            <td><input type="number" id="regGateway" placeholder="例如: 14" min="0" style="width: 100px;"></td>
+            <td>网关地址（占用 2 个寄存器）</td>
+          </tr>
+          <tr>
+            <td>保存命令</td>
+            <td><input type="number" id="regSaveCommand" placeholder="例如: 9999" min="0" style="width: 100px;"></td>
+            <td>保存配置到 EEPROM 的命令寄存器</td>
+          </tr>
+          <tr>
+            <td>重启命令</td>
+            <td><input type="number" id="regRebootCommand" placeholder="例如: 9998" min="0" style="width: 100px;"></td>
+            <td>设备重启命令寄存器</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 步骤 3: 新配置 -->
+    <div class="step-container">
+      <div class="step-header">
+        <div class="step-number">3</div>
+        <div class="step-title">新配置参数</div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>新从站 ID:</label>
+          <input type="number" id="newSlaveId" placeholder="留空表示不修改" min="1" max="247">
+        </div>
+        <div class="form-group">
+          <label>新波特率:</label>
+          <select id="newBaudRate">
+            <option value="">不修改</option>
+            <option value="2400">2400</option>
+            <option value="4800">4800</option>
+            <option value="9600">9600</option>
+            <option value="19200">19200</option>
+            <option value="38400">38400</option>
+            <option value="57600">57600</option>
+            <option value="115200">115200</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>新 IP 地址:</label>
+          <input type="text" id="newIPAddress" placeholder="例如: 192.168.1.101">
+        </div>
+        <div class="form-group">
+          <label>新子网掩码:</label>
+          <input type="text" id="newSubnetMask" placeholder="例如: 255.255.255.0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>新网关:</label>
+        <input type="text" id="newGateway" placeholder="例如: 192.168.1.1">
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="saveConfig" checked>
+          保存配置到设备（EEPROM）
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="rebootDevice">
+          配置完成后重启设备
+        </label>
+      </div>
+    </div>
+
+    <!-- 步骤 4: 执行初始化 -->
+    <div class="step-container">
+      <div class="step-header">
+        <div class="step-number">4</div>
+        <div class="step-title">执行初始化</div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn btn-success" onclick="startInitialization()">开始初始化</button>
+        <button class="btn btn-info" onclick="readCurrentConfig()">读取当前配置</button>
+        <button class="btn btn-secondary" onclick="clearLog()">清空日志</button>
+      </div>
+
+      <div class="log-container" id="logContainer">
+        <div class="log-entry">等待操作...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 切换连接类型
+    function toggleConnectionFields() {
+      const type = document.getElementById('connectionType').value;
+      document.getElementById('rtuConnectionFields').style.display = type === 'rtu' ? 'block' : 'none';
+      document.getElementById('tcpConnectionFields').style.display = type === 'tcp' ? 'block' : 'none';
+    }
+
+    // 添加日志
+    function addLog(message, type = 'info') {
+      const logContainer = document.getElementById('logContainer');
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    // 清空日志
+    function clearLog() {
+      document.getElementById('logContainer').innerHTML = '<div class="log-entry">日志已清空</div>';
+    }
+
+    // 获取连接配置
+    function getConnectionConfig() {
+      const type = document.getElementById('connectionType').value;
+      
+      if (type === 'rtu') {
+        return {
+          type: 'rtu',
+          port: document.getElementById('rtuPort').value,
+          baudRate: parseInt(document.getElementById('rtuBaudRate').value),
+          slaveId: parseInt(document.getElementById('currentSlaveId').value)
+        };
+      } else {
+        return {
+          type: 'tcp',
+          ip: document.getElementById('tcpIP').value,
+          port: parseInt(document.getElementById('tcpPort').value),
+          slaveId: parseInt(document.getElementById('currentSlaveId').value)
+        };
+      }
+    }
+
+    // 获取寄存器映射
+    function getRegisterMap() {
+      const map = {};
+      
+      const slaveId = document.getElementById('regSlaveId').value;
+      if (slaveId) map.slaveIdAddress = parseInt(slaveId);
+      
+      const baudRate = document.getElementById('regBaudRate').value;
+      if (baudRate) map.baudRateAddress = parseInt(baudRate);
+      
+      const ipAddress = document.getElementById('regIPAddress').value;
+      if (ipAddress) map.ipAddress = parseInt(ipAddress);
+      
+      const subnetMask = document.getElementById('regSubnetMask').value;
+      if (subnetMask) map.subnetMaskAddress = parseInt(subnetMask);
+      
+      const gateway = document.getElementById('regGateway').value;
+      if (gateway) map.gatewayAddress = parseInt(gateway);
+      
+      const saveCommand = document.getElementById('regSaveCommand').value;
+      if (saveCommand) map.saveCommandAddress = parseInt(saveCommand);
+      
+      const rebootCommand = document.getElementById('regRebootCommand').value;
+      if (rebootCommand) map.rebootCommandAddress = parseInt(rebootCommand);
+      
+      return map;
+    }
+
+    // 获取新配置
+    function getNewConfig() {
+      const config = {
+        registerMap: getRegisterMap(),
+        saveConfig: document.getElementById('saveConfig').checked,
+        rebootDevice: document.getElementById('rebootDevice').checked
+      };
+      
+      const newSlaveId = document.getElementById('newSlaveId').value;
+      if (newSlaveId) config.newSlaveId = parseInt(newSlaveId);
+      
+      const newBaudRate = document.getElementById('newBaudRate').value;
+      if (newBaudRate) config.newBaudRate = parseInt(newBaudRate);
+      
+      const newIPAddress = document.getElementById('newIPAddress').value;
+      if (newIPAddress) config.newIPAddress = newIPAddress;
+      
+      const newSubnetMask = document.getElementById('newSubnetMask').value;
+      if (newSubnetMask) config.newSubnetMask = newSubnetMask;
+      
+      const newGateway = document.getElementById('newGateway').value;
+      if (newGateway) config.newGateway = newGateway;
+      
+      return config;
+    }
+
+    // 测试连接
+    async function testConnection() {
+      clearLog();
+      addLog('开始测试连接...', 'info');
+      
+      try {
+        const connectionConfig = getConnectionConfig();
+        const registerMap = getRegisterMap();
+        
+        const response = await fetch('/api/device-initializer/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ connectionConfig, registerMap })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          addLog('✓ 连接成功！', 'success');
+          if (result.deviceInfo) {
+            addLog('设备信息:', 'info');
+            Object.entries(result.deviceInfo).forEach(([key, value]) => {
+              addLog(`  ${key}: ${value}`, 'info');
+            });
+          }
+        } else {
+          addLog(`✗ 连接失败: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        addLog(`✗ 测试失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 读取当前配置
+    async function readCurrentConfig() {
+      clearLog();
+      addLog('读取当前配置...', 'info');
+      
+      try {
+        const connectionConfig = getConnectionConfig();
+        const registerMap = getRegisterMap();
+        
+        const response = await fetch('/api/device-initializer/read-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ connectionConfig, registerMap })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          addLog('✓ 读取成功！', 'success');
+          addLog('当前配置:', 'info');
+          Object.entries(result.deviceInfo).forEach(([key, value]) => {
+            addLog(`  ${key}: ${value}`, 'info');
+          });
+        } else {
+          addLog(`✗ 读取失败: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        addLog(`✗ 读取失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 开始初始化
+    async function startInitialization() {
+      if (!confirm('确定要开始初始化设备吗？\n\n请确保已记录当前配置，以便必要时恢复。')) {
+        return;
+      }
+      
+      clearLog();
+      addLog('========================================', 'info');
+      addLog('开始设备初始化...', 'info');
+      addLog('========================================', 'info');
+      
+      try {
+        const connectionConfig = getConnectionConfig();
+        const deviceConfig = getNewConfig();
+        
+        const response = await fetch('/api/device-initializer/initialize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ connectionConfig, deviceConfig })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          result.logs.forEach(log => {
+            addLog(log.message, log.type);
+          });
+          addLog('========================================', 'success');
+          addLog('✓ 设备初始化完成！', 'success');
+          addLog('========================================', 'success');
+        } else {
+          addLog(`✗ 初始化失败: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        addLog(`✗ 初始化失败: ${error.message}`, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

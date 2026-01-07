@@ -1,0 +1,57 @@
+{
+  "readInterval": 10,
+  "ports": [
+    {
+      "name": "/dev/ttyUSB0",
+      "baudRate": 9600,
+      "dataBits": 8,
+      "parity": "N",
+      "stopBits": 1
+    },
+    {
+      "name": "/dev/ttyUSB1",
+      "baudRate": 9600,
+      "dataBits": 8,
+      "parity": "N",
+      "stopBits": 1
+    }
+  ],
+  "sensors": [
+    {
+      "name": "Sensor1",
+      "port": "/dev/ttyUSB0",
+      "slaveId": 1,
+      "tempRegister": 0,
+      "humidityRegister": 1
+    },
+    {
+      "name": "Sensor2",
+      "port": "/dev/ttyUSB0",
+      "slaveId": 2,
+      "tempRegister": 0,
+      "humidityRegister": 1
+    },
+    {
+      "name": "Sensor3",
+      "port": "/dev/ttyUSB1",
+      "slaveId": 1,
+      "tempRegister": 0,
+      "humidityRegister": 1
+    }
+  ],
+  "storage_configs": [
+    {
+      "type": "CSV",
+      "file_path": "./sensor_data.csv"
+    },
+    {
+      "type": "SQLite",
+      "db_path": "./sensor_data.db"
+    },
+    {
+      "type": "InfluxDB",
+      "url": "http://localhost:8086",
+      "database": "modbus"
+    }
+  ]
+}

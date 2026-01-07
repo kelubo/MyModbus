@@ -1,0 +1,23 @@
+[Unit]
+Description=Modbus Temperature and Humidity Sensor Reader Service
+Documentation=https://github.com/your-repo/modbus/tree/main/Java
+After=network.target
+
+[Service]
+Type=simple
+User=modbus
+Group=modbus
+WorkingDirectory=/opt/modbus-sensor-reader
+ExecStart=/usr/bin/java -jar /opt/modbus-sensor-reader/modbus-sensor-reader-1.0.0.jar -c /opt/modbus-sensor-reader/config.json
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/modbus-sensor-reader.log
+StandardError=append:/var/log/modbus-sensor-reader-error.log
+
+Environment=JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+Environment=CONFIG_FILE=/opt/modbus-sensor-reader/config.json
+Environment=JAVA_OPTS="-Xms64m -Xmx256m"
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+[Unit]
+Description=Modbus Temperature and Humidity Sensor Reader Service
+Documentation=https://github.com/your-repo/modbus/tree/main/Go
+After=network.target
+
+[Service]
+Type=simple
+User=modbus
+Group=modbus
+WorkingDirectory=/opt/modbus-sensor-reader
+ExecStart=/opt/modbus-sensor-reader/modbus-sensor-reader -c /opt/modbus-sensor-reader/config.yaml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/modbus-sensor-reader.log
+StandardError=append:/var/log/modbus-sensor-reader-error.log
+
+Environment=CONFIG_FILE=/opt/modbus-sensor-reader/config.yaml
+Environment=GOPATH=/opt/go
+
+[Install]
+WantedBy=multi-user.target

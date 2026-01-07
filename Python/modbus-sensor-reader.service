@@ -1,0 +1,28 @@
+[Unit]
+Description=Modbus Temperature and Humidity Sensor Reader Service
+Documentation=https://github.com/your-repo/modbus/tree/main/Python
+After=network.target
+
+[Service]
+Type=simple
+User=modbus
+Group=modbus
+WorkingDirectory=/opt/modbus-sensor-reader
+ExecStart=/usr/bin/python3 /opt/modbus-sensor-reader/modbus_sensor_reader.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/modbus-sensor-reader.log
+StandardError=append:/var/log/modbus-sensor-reader-error.log
+
+Environment=PYTHONPATH=/opt/modbus-sensor-reader
+Environment=CONFIG_FILE=/opt/modbus-sensor-reader/config.json
+
+# Permissions for serial port access
+UdevJobTimeout=30
+
+# Health check
+ExecStartPost=/bin/bash -c 'while ! /usr/bin/python3 -c "import serial"; do sleep 1; done'
+
+[Install]
+WantedBy=multi-user.target

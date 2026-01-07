@@ -1,0 +1,59 @@
+{
+    "ports": [
+        {
+            "name": "ttyUSB0",
+            "port": "/dev/ttyUSB0",
+            "baudrate": 9600,
+            "data_bits": 8,
+            "stop_bits": 1,
+            "parity": "N",
+            "timeout": 1.0
+        },
+        {
+            "name": "ttyUSB1",
+            "port": "/dev/ttyUSB1",
+            "baudrate": 9600,
+            "data_bits": 8,
+            "stop_bits": 1,
+            "parity": "N",
+            "timeout": 1.0
+        }
+    ],
+    "read_interval": 2,
+    "storage_type": "sqlite",
+    "storage_sqlite_path": "sensor_data.db",
+    "storage_influxdb_url": "http://localhost:8086",
+    "storage_influxdb_token": "your-token-here",
+    "storage_influxdb_org": "your-org",
+    "storage_influxdb_bucket": "sensor-data",
+    "storage_csv_path": "sensor_data.csv",
+    "sensors": [
+        {
+            "name": "传感器1",
+            "slave_id": 1,
+            "temp_reg": 0,
+            "humi_reg": 1,
+            "temp_scale": 0.1,
+            "humi_scale": 0.1,
+            "port_name": "ttyUSB0"
+        },
+        {
+            "name": "传感器2",
+            "slave_id": 2,
+            "temp_reg": 0,
+            "humi_reg": 1,
+            "temp_scale": 0.1,
+            "humi_scale": 0.1,
+            "port_name": "ttyUSB0"
+        },
+        {
+            "name": "传感器3",
+            "slave_id": 3,
+            "temp_reg": 0,
+            "humi_reg": 1,
+            "temp_scale": 0.1,
+            "humi_scale": 0.1,
+            "port_name": "ttyUSB1"
+        }
+    ]
+}

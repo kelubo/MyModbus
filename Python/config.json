@@ -1,0 +1,76 @@
+{
+    "ports": [
+        {
+            "name": "串口1",
+            "port": "COM3",
+            "baudrate": 9600,
+            "parity": "N",
+            "stopbits": 1,
+            "bytesize": 8,
+            "timeout": 1.0
+        },
+        {
+            "name": "串口2",
+            "port": "COM4",
+            "baudrate": 9600,
+            "parity": "N",
+            "stopbits": 1,
+            "bytesize": 8,
+            "timeout": 1.0
+        }
+    ],
+    "read_interval": 2,
+    "storage_type": "sqlite",
+    "storage_configs": {
+        "sqlite": {
+            "db_path": "sensor_data.db"
+        },
+        "influxdb": {
+            "url": "http://localhost:8086",
+            "token": "your-token",
+            "org": "your-org",
+            "bucket": "sensor-data"
+        },
+        "csv": {
+            "file_path": "sensor_data.csv"
+        }
+    },
+    "sensors": [
+        {
+            "name": "传感器1",
+            "port": "COM3",
+            "slave_id": 1,
+            "temp_reg": 0,
+            "humi_reg": 1,
+            "temp_scale": 0.1,
+            "humi_scale": 0.1
+        },
+        {
+            "name": "传感器2",
+            "port": "COM3",
+            "slave_id": 2,
+            "temp_reg": 0,
+            "humi_reg": 1,
+            "temp_scale": 0.1,
+            "humi_scale": 0.1
+        },
+        {
+            "name": "传感器3",
+            "port": "COM4",
+            "slave_id": 1,
+            "temp_reg": 0,
+            "humi_reg": 1,
+            "temp_scale": 0.1,
+            "humi_scale": 0.1
+        },
+        {
+            "name": "传感器4",
+            "port": "COM4",
+            "slave_id": 2,
+            "temp_reg": 0,
+            "humi_reg": 1,
+            "temp_scale": 0.1,
+            "humi_scale": 0.1
+        }
+    ]
+}
